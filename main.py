@@ -334,4 +334,4 @@ async def save_data(data: models.AdData):
         raise HTTPException(status_code=400, detail=str(e))
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="192.168.1.63", port=8000, reload=True)
+    uvicorn.run("main:app", host="192.168.1.116", port=8000, reload=True)
