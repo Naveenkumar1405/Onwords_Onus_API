@@ -53,8 +53,9 @@ class Client_model(BaseModel):
     enquiry: Enquiry_model
 class Change_sts_model(BaseModel):
     pr_uid: str
-    state: str
+    status: str
     reason: str
+
 class Client_notes_model(BaseModel):
     pr_user_id: str
     notes: str

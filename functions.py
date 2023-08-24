@@ -2,7 +2,10 @@ from main import db
 
 def find_client_using_client_id(client_id):
     print("Client_id",client_id)
-    client_data = db.child("clients").get().val()  # .child("new").child(client_id)
+    client_data = db.child("clients").get().val()
+    if client_data is None:
+        return {}
+    
     print("STATUS",client_data)
     for sts in client_data:
         print(sts)
@@ -13,7 +16,7 @@ def find_client_using_client_id(client_id):
     return False
 
 def find_sts_of_client(client_id):
-    client_data = db.child("clients").get().val()  # .child("new").child(client_id)
+    client_data = db.child("clients").get().val()
 
     for sts in client_data:
         for _client_id in client_data[sts]:

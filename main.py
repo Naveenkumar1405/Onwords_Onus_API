@@ -213,25 +213,25 @@ def add_notes_to_client(client_id: str, notes: models.Client_notes_model):
     db.child("clients").child(functions.find_sts_of_client(client_id)).child(client_id).child("notes").push(data)
     return f"Notes added successfully..!"
 
-@app.post("/client/{client_id}/sts/{sts}")
-def change_sts_of_client(client_id: str, sts: str, sts_model: models.Change_sts_model):
+@app.post("/client/{client_id}/status/{status}")
+def change_sts_of_client(client_id: str, status: str, sts_model: models.Change_sts_model):
     print("Inside the change status  url!!!!")
     old_sts = functions.find_sts_of_client(client_id)
-    if old_sts == sts:
-        return f"client is already in {sts}. No changes have been made!"
+    if old_sts == status:
+        return f"client is already in {status}. No changes have been made!"
     else:
         print("changing client status!!!")
-        db.child("clients").child(sts).child(client_id).set(functions.find_client_using_client_id(client_id))
+        db.child("clients").child(status).child(client_id).set(functions.find_client_using_client_id(client_id))
         time.sleep(1)
         db.child("clients").child(old_sts).child(client_id).remove()
         data = {
             "pr_uid": sts_model.pr_uid,
-            "state": sts_model.state,
+            "state": sts_model.status,
             "reason": sts_model.reason,
             "time": time.time()
         }
-        db.child("clients").child(sts).child(client_id).child("status").push(data)
-        client_new_data = db.child("clients").child(sts).child(client_id).get().val()
+        db.child("clients").child(status).child(client_id).child("status").push(data)
+        client_new_data = db.child("clients").child(status).child(client_id).get().val()
         print(client_new_data)
         return client_new_data
 
@@ -293,4 +293,4 @@ def Create_client_schedule(client_id: str, payment: models.Payment_model):
         payment.payment_id).set(data)
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="192.168.1.116", port=8000, reload=True)
+    uvicorn.run("main:app", host="192.168.1.63", port=8000, reload=True)
