@@ -293,4 +293,4 @@ def Create_client_schedule(client_id: str, payment: models.Payment_model):
         payment.payment_id).set(data)
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="192.168.1.63", port=8000, reload=True)
+    uvicorn.run("main:app", host="192.168.1.116", port=8000, reload=True)
