@@ -14,7 +14,7 @@ class Bank_data(BaseModel):
 class Gov_id(BaseModel):
     aadhar_no: str
     pan_no: str
-class Adress_Model(BaseModel):
+class Address_Model(BaseModel):
     door_no: str
     street: str
     city: str
@@ -26,7 +26,6 @@ class Staff_model(BaseModel):
     phone: str
     email: str
     department: str
-    # pod_id: str
     dob: str
     blood_group: str
     profile_pic_url: str
@@ -47,15 +46,13 @@ class Enquiry_model(BaseModel):
 class Client_model(BaseModel):
     name: str
     phone: str
-    address: Adress_Model
+    address: Address_Model
     rating: str
     pod_id: str
     enquiry: Enquiry_model
-class Change_sts_model(BaseModel):
+class ChangeStatusModel(BaseModel):
     pr_uid: str
     status: str
-    reason: str
-
 class Client_notes_model(BaseModel):
     pr_user_id: str
     notes: str
@@ -86,3 +83,13 @@ class AdData(BaseModel):
     phone_number: str
     email: str
     city: str
+class DeleteScheduleModel(BaseModel):
+    schedule_id: str    
+class UploadedClient(BaseModel):
+    ad_name: str
+    platform: str
+    full_name: str
+    phone_number: str
+    email: str
+    city: str    
+    

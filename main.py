@@ -1,9 +1,7 @@
-import time
+import time,functions,models
 import uvicorn as uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 import pyrebase
-import functions
-import models
 
 app = FastAPI()
 config = {
@@ -21,17 +19,15 @@ auth = firebase.auth()
 
 @app.get("/")
 def read_root():
-    return {"Hello": "This is onus api"}
+    return {"Hello": "THIS IS ONUS API"}
 
 @app.post("/create_staff")
 def create_staff(staff: models.Staff_model):
-
     email = staff.email
     password = staff.password
     try:
         user = auth.create_user_with_email_and_password(email, password)
         uid = user['localId']
-
         data = {
             'name': staff.name,
             'phone': staff.phone,
@@ -57,7 +53,6 @@ def create_staff(staff: models.Staff_model):
 
 @app.post("/staff/login")
 def get_staff_uid(login: models.Login_model):
-    print("Inside login!")
     email = login.email
     password = login.password
     try:
@@ -98,16 +93,15 @@ def get_pod_names():
 @app.post("/staff/tagged_client/new")
 def get_tagged_client(uid: models.Uid_model):
     client_data = db.child("clients").child("new").get().val()
-    print(client_data)
+    
     new_client_data = []
     for client in client_data:
-        print(client_data[client])
+        
         new_client_data.append(client_data[client])
     return new_client_data
 
 @app.post("/pod/create")
 def create_pod(pod: models.Pod):
-    print(pod)
     data = {
         "name": pod.name,
         "members": pod.members
@@ -117,7 +111,6 @@ def create_pod(pod: models.Pod):
 
 @app.post("/staff/data")
 def get_staff_data_with_uid(uid: models.Uid_model):
-    print("going to get staff data with uid")
     staff_data = db.child("staff").child(uid.uid).get().val()
     return staff_data
 
@@ -134,19 +127,14 @@ def get_staff_alldata():
 
 @app.get("/staff/data/all")
 def get_all_staf_data():
-    print("Going to get all staff data..!")
     staff_data = db.child("staff").get().val()
-    print(staff_data)
-
     return staff_data
 
 @app.get("/staff/pod/{uid}")
 def get_staffs_pod_with_uid(uid: str):
-    print(f"need {uid} oda respective pod name")
     pods = db.child("pod").get().val()
     for pod in pods:
         members = pods[pod]['members']
-        print(members)
         for member in members:
             if member == uid:
                 return pod
@@ -166,7 +154,6 @@ def get_client_tagged_with_pod_name(pod_name: str):
 
 @app.get("/staff/data/name")
 def get_all_staf_data():
-    print("Going to get all staff data..!")
     staff_name = []
     staff_data = db.child("staff").get().val()
     for staff in staff_data:
@@ -177,13 +164,10 @@ def get_all_staf_data():
 def get_all_numbers_in_database():
     client_data = db.child('clients').get().val()
     client_number_list = []
-
     for sates in client_data:
-        print(sates)
         for client_numbers in client_data[sates]:
             client_number_list.append(client_numbers)
-
-    print(client_number_list)
+    
     return client_number_list
 
 @app.post("/create_client")
@@ -210,30 +194,36 @@ def add_notes_to_client(client_id: str, notes: models.Client_notes_model):
         "timestamp": time.time(),
         "notes": notes.notes
     }
-    db.child("clients").child(functions.find_sts_of_client(client_id)).child(client_id).child("notes").push(data)
+    status = functions.find_sts_of_client(client_id)
+    if status is None:
+        return f"Client {client_id} not found."
+
+    db.child("clients").child(status).child(client_id).child("notes").push(data)
     return f"Notes added successfully..!"
 
-@app.post("/client/{client_id}/status/{status}")
-def change_sts_of_client(client_id: str, status: str, sts_model: models.Change_sts_model):
-    print("Inside the change status  url!!!!")
+@app.post("/status_change/{client_id}")
+def change_sts_of_client(client_id: str, status_model: models.ChangeStatusModel):
     old_sts = functions.find_sts_of_client(client_id)
-    if old_sts == status:
-        return f"client is already in {status}. No changes have been made!"
+    if old_sts == status_model.status:
+        raise HTTPException(status_code=400, detail=f"Client is already in {status_model.status}. No changes have been made!")
     else:
-        print("changing client status!!!")
-        db.child("clients").child(status).child(client_id).set(functions.find_client_using_client_id(client_id))
-        time.sleep(1)
-        db.child("clients").child(old_sts).child(client_id).remove()
-        data = {
-            "pr_uid": sts_model.pr_uid,
-            "state": sts_model.status,
-            "reason": sts_model.reason,
-            "time": time.time()
-        }
-        db.child("clients").child(status).child(client_id).child("status").push(data)
-        client_new_data = db.child("clients").child(status).child(client_id).get().val()
-        print(client_new_data)
-        return client_new_data
+        client_data = functions.find_client_using_client_id(client_id)
+        if client_data:
+            db.child("clients").child(status_model.status).child(client_id).set(client_data)
+            
+            db.child("clients").child(old_sts).child(client_id).remove()
+            
+            data = {
+                "pr_uid": status_model.pr_uid,
+                "status": status_model.status
+            }
+            db.child("clients").child(status_model.status).child(client_id).child("status").update(data)
+           
+            client_new_data = db.child("clients").child(status_model.status).child(client_id).get().val()
+            
+            return client_new_data
+        else:
+            raise HTTPException(status_code=404, detail=f"Client with id {client_id} not found")
 
 @app.post("/client/{client_id}/create_schedule")
 def Create_client_schedule(client_id: str, schedule_model: models.Schedule_model):
@@ -257,19 +247,39 @@ def Create_client_schedule(client_id: str, schedule_model: models.Schedule_model
     db.child("schedule").child(schedule_model.type).push(data2)
 
 @app.get("/schedule/{uid}")
-def Get_staffs_schedule_taged_to_therir_pod_using_uid(uid:str):
+def get_schedules_data(uid: str):
     schedule_datas = db.child("schedule").get().val()
     user_pod = functions.find_pod_using_uid(uid)
-    print(user_pod)
     schedules = []
-    for schedule_type in schedule_datas:
-        type = schedule_datas[schedule_type]
-        for schedule in type:
-            print(type[schedule])
-            pod = type[schedule]['pod_id']
+
+    for schedule_type, schedules_data in schedule_datas.items():
+        for schedule_id, schedule in schedules_data.items():
+            pod = schedule['pod_id']
             if pod == user_pod:
-                schedules.append(type[schedule])
+                schedule['schedule_id'] = schedule_id
+                schedules.append(schedule)
+
     return schedules
+
+@app.delete("/delete_schedule/{schedule_id}")
+def delete_schedule(schedule_id: str):
+    schedule_datas = db.child("schedule").get().val()
+    for schedule_type, schedules in schedule_datas.items():
+        if schedule_id in schedules:
+            schedules.pop(schedule_id)
+            db.child("schedule").child(schedule_type).set(schedules)
+            return {"message": "Schedule deleted successfully"}
+    raise HTTPException(status_code=404, detail="Schedule not found")
+
+@app.put("/mark_schedule_done/{schedule_id}")
+def mark_schedule_done(schedule_id: str):
+    schedule_datas = db.child("schedule").get().val()
+    for schedule_type, schedules in schedule_datas.items():
+        if schedule_id in schedules:
+            schedules[schedule_id]["status"] = "Done"
+            db.child("schedule").child(schedule_type).set(schedules)
+            return {"message": "Schedule marked as done"}
+    raise HTTPException(status_code=404, detail="Schedule not found")
 
 @app.get("/client/{number}")
 def Client_Profile_with_Number(number: str):
@@ -291,6 +301,24 @@ def Create_client_schedule(client_id: str, payment: models.Payment_model):
     }
     db.child("clients").child(functions.find_sts_of_client(client_id)).child(client_id).child("payments").child(
         payment.payment_id).set(data)
-
+    
+@app.post("/save_uploaded_clients/")
+def save_uploaded_clients(uploaded_clients: list[models.UploadedClient]):
+    try:
+        ref = db.reference("uploaded_clients")
+        for client in uploaded_clients:
+            client_data = {
+                "ad_name": client.ad_name,
+                "platform": client.platform,
+                "full_name": client.full_name,
+                "phone_number": client.phone_number,
+                "email": client.email,
+                "city": client.city
+            }
+            ref.push().set(client_data)
+        return {"message": "Data successfully saved"}
+    except Exception as e:
+        return HTTPException(status_code=500, detail=str(e))
+    
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="192.168.1.63", port=8000, reload=True)
+    uvicorn.run("main:app", host="192.168.1.18", port=8155, reload=True)
