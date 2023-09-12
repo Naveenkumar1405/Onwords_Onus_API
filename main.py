@@ -1,25 +1,22 @@
-import time,functions,models
+import models, time, functions
 import uvicorn as uvicorn
 from fastapi import FastAPI, HTTPException
 import pyrebase
 
-app = FastAPI()
+app = FastAPI(docs_url="/")
+
 config = {
-    "apiKey": "AIzaSyBb1Age-jnJPIQJDnGFEtbAUPfJm7GdBiI",
-    "authDomain": "onwords-master-db.firebaseapp.com",
-    "databaseURL": "https://onwords-master-db-default-rtdb.firebaseio.com",
-    "projectId": "onwords-master-db",
-    "storageBucket": "onwords-master-db.appspot.com",
-    "messagingSenderId": "956596402862",
-    "appId": "1:956596402862:web:8355b18cb727e935588b3f"
+  "apiKey": "AIzaSyBb1Age-jnJPIQJDnGFEtbAUPfJm7GdBiI",
+  "authDomain": "onwords-master-db.firebaseapp.com",
+  "databaseURL": "https://onwords-master-db-default-rtdb.firebaseio.com",
+  "projectId": "onwords-master-db",
+  "storageBucket": "onwords-master-db.appspot.com",
+  "messagingSenderId": "956596402862",
+  "appId": "1:956596402862:web:8355b18cb727e935588b3f"
 }
 firebase = pyrebase.initialize_app(config)
 db = firebase.database()
 auth = firebase.auth()
-
-@app.get("/")
-def read_root():
-    return {"Hello": "THIS IS ONUS API"}
 
 @app.post("/create_staff")
 def create_staff(staff: models.Staff_model):
@@ -83,22 +80,26 @@ def client_states_post(state: str, pod: str):
 
 @app.get('/pod/names')
 def get_pod_names():
-    pods = db.child('pod').get().val()
-    pod_name_list = []
-    for pod in pods:
-        pod_name_list.append(pod)
+    try:
+        pods = db.child('pod').get().val()
+        pod_name_list = []
+        for pod in pods:
+            pod_name_list.append(pod)
+        return pod_name_list
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting pod names: {str(e)}")
 
-    return pod_name_list
 
 @app.post("/staff/tagged_client/new")
 def get_tagged_client(uid: models.Uid_model):
-    client_data = db.child("clients").child("new").get().val()
-    
-    new_client_data = []
-    for client in client_data:
-        
-        new_client_data.append(client_data[client])
-    return new_client_data
+    try:
+        client_data = db.child("clients").child("new").get().val()
+        new_client_data = []
+        for client in client_data:
+            new_client_data.append(client_data[client])
+        return new_client_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting tagged clients: {str(e)}")
 
 @app.post("/pod/create")
 def create_pod(pod: models.Pod):
